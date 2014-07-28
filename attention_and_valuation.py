@@ -4,6 +4,7 @@ import os.path
 import sys
 import csv
 import itertools
+import re
 import numpy as np
 from scipy.stats import ttest_rel
 
@@ -202,7 +203,7 @@ def count_file_lines(inputfile):
         else:
             return 0    
 
-def write_mean_cluster(cluster_mask): #,num_clusters):
+def write_mean_cluster(cluster_mask,subj_list = []): #,num_clusters):
     def cleanup():
         subprocess.call('rm -f ' +group_folder+'/Clusters/PLOS_' + cluster_mask + '*', shell=True)  
         for reg_type in regressor_type:   # beta versus iresp
@@ -217,12 +218,13 @@ def write_mean_cluster(cluster_mask): #,num_clusters):
         return count_file_lines(filename_clustertable())
     def subj_cluster_mean_files(cluster_mask,regressor,cluster,reg_type,clust_num):
         files_string = ''
-        for subj_num in range(16): 
+#        for subj_num in range(16): 
+        for subj_num in range(len(subjs)):             
             files_string = files_string + '-' +calc_flags[subj_num]+' '+ root_folder + subjs[subj_num] + '/' +"PLOS_"+cluster_mask+'_'+regressor+'_mean_'+reg_type+'.1D[' +str(clust_num)+ '] '
         return files_string  
     def subj_cluster_marg_mean_files(cluster_mask,marg_mean,cluster,reg_type,clust_num):
         files_string = ''
-        for subj_num in range(16):
+        for subj_num in range(len(subjs)):        
             files_string = files_string + '-' +calc_flags[subj_num]+' '+ root_folder + subjs[subj_num] + '/' +"PLOS_"+cluster_mask+'_'+marg_mean+'_'+reg_type+'.1D[' +str(clust_num)+ '] '
         return files_string
        
@@ -281,10 +283,9 @@ def write_mean_cluster(cluster_mask): #,num_clusters):
             ['quin_diff beta']+['quin_diff beta SEM']+['quin_diff IRESP1']+['quin_diff IRESP2']+['quin_diff IRESP3']+['quin_diff IRESP4']+['quin_diff IRESP5']+['quin_diff IRESP SEM1']+['quin_diff IRESP SEM2']+['quin_diff IRESP SEM3']+['quin_diff IRESP SEM4']+['quin_diff IRESP SEM5']+\
             ['juice ttest']+['quinn ttest']+['spritz ttest']+['probe ttest']+['flick ttest']+['valence ttest']+['juice_thresh']+['quinn_thresh']+['spritz_thresh']+['probe_thresh']+['flick_thresh']+['valence_thresh']+['CM_RL']+['CM_AP']+['CM_IS']+['ValenceMod_ttest']+['ValenceMod_thresh']
         def out_row(): return [cluster_mask] + [reg] + [str(cluster_num)] + [volume] + [cluster[0],cluster[1],cluster[2],cluster[3],cluster[13],cluster[14],cluster[15]] + list(mean_beta_row) + list(stder_beta_row) + list(mean_iresp_row) + list(stder_iresp_row)
-#        def subj_cluster_mean_file(subj,reg): return root_folder + subj + '/PLOS_'+cluster_mask+'_'+reg+'_mean_beta.1D' 
+
         def subj_cluster_mean_file(subj,reg): return root_folder + subj + '/PLOS_'+cluster_mask+'_'+reg+'_beta.1D' 
 
-        #def subj_cluster_amrg_mean_file(subj,reg): return      root_folder + subj + '/PLOS_'+cluster_mask+'_'+reg+'_mean_beta.1D'
         def betas(betafile): return betafile.readline().strip().split() 
 
         def calculate_ttests():
@@ -356,7 +357,7 @@ def write_mean_cluster(cluster_mask): #,num_clusters):
 
 
         juice_ttest, quinn_ttest, spritz_ttest, probe_ttest, flick_ttest, valence_ttest, valencemod_ttest, juice_thresh, quinn_thresh, spritz_thresh, probe_thresh, flick_thresh, valence_thresh, valencemod_thresh = calculate_ttests()        
-        excel_file = open(group_folder+'Clusters/'+cluster_mask+'table_by_cluster.csv','w')
+        excel_file = open(group_folder+'Clusters/'+cluster_mask+'table_by_cluster' + reduced_filename_flag+ '.csv','w')
         excel_csv = csv.writer(excel_file, delimiter=',') 
         excel_csv.writerow(header_row_clust())
         cluster_num = 0      
@@ -384,8 +385,12 @@ def write_mean_cluster(cluster_mask): #,num_clusters):
                                     transposed_iresp_stder = zip(*(row for row in rows_iresp_stder if row)) 
                                     outline += list(transposed_beta_means[cluster_num-1]) + list(transposed_beta_stder[cluster_num-1]) + list(transposed_iresp_means[cluster_num-1]) + list(transposed_iresp_stder[cluster_num-1])
                 excel_csv.writerow(outline+[juice_ttest[cluster_num-1]]+[quinn_ttest[cluster_num-1]]+[spritz_ttest[cluster_num-1]]+[probe_ttest[cluster_num-1]]+[flick_ttest[cluster_num-1]]+[valence_ttest[cluster_num-1]]+[juice_thresh]+[quinn_thresh]+[spritz_thresh]+[probe_thresh]+[flick_thresh]+[valence_thresh]+[cluster[1],cluster[2],cluster[3]]+[valencemod_ttest[cluster_num-1]]+[valencemod_thresh]) 
-        excel_file.close()        
-                    
+        excel_file.close()  
+
+    reducde_filename_flag = ''
+    if subj_list:
+        subjs = subj_list
+        reduced_filename_flag = 'reducde_subjects' + str(len(subjs))
     if False:   cleanup()
     num_clusters = write_afni_cluster_table()
     if True:   write_means_by_regressor()   
@@ -710,9 +715,8 @@ def write_weak_valence_clusters_for_trendlevel_analysis():
 def write_ultraweak_valence_clusters_for_trendlevel_analysis():
     make_and_write_cluster('ANOVA_AllStimuli_PLOS','Valence_ultraweakthresh',27,1.753,20)   # 0.10
 
-
 def write_results_for_atlas_CA_27_ML():
-#    write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres')
+    #write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres') 
     #write_mean_cluster('CA_N27_ML_region27_LRectalGyrus_lowres')
     #write_mean_cluster('CA_N27_ML_region9_LMiddleOrbGyrus_lowres')
     #write_mean_cluster('CA_N27_ML_region25_LMidOrbitalGyrus_lowres')
@@ -720,10 +724,90 @@ def write_results_for_atlas_CA_27_ML():
     #write_mean_cluster('CA_N27_ML_region21_LOlfactoryCortex_lowres')
     #write_mean_cluster('CA_N27_ML_region22_ROlfactoryCortex_lowres')
     #write_mean_cluster('CA_N27_ML_region26_RMidOrbitalGyrus_lowres')
-    write_mean_cluster('CA_N27_ML_region6_RSuperOrbitalGyrus_lowres')
-    write_mean_cluster('CA_N27_ML_region28_RRectalGyrus_lowres')
-    write_mean_cluster('CA_N27_ML_region10_RMiddleOrbGyrus_lowres')
-    write_mean_cluster('CA_N27_ML_region32_RAnteriorCingulate_lowres')
+    #write_mean_cluster('CA_N27_ML_region6_RSuperOrbitalGyrus_lowres') 
+    #write_mean_cluster('CA_N27_ML_region28_RRectalGyrus_lowres')
+    #write_mean_cluster('CA_N27_ML_region10_RMiddleOrbGyrus_lowres')
+    #write_mean_cluster('CA_N27_ML_region32_RAnteriorCingulate_lowres')
+
+
+    # # Drop subjects in order based on how litte the L SuperOrbital Gyrus survives the 3DAutomask cluster
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae20","ae21","ae22","ae23","ae24","ae25","ae27","ae28","ae29","ae30","ae31","ae32"]) # drop ae18 
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae20","ae21","ae22","ae23","ae25","ae27","ae28","ae29","ae30","ae31","ae32"]) # drop ae24
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae20","ae21","ae22","ae23","ae25","ae27","ae28","ae29","ae31","ae32"]) # drop ae28 ae20
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae20","ae21","ae22","ae23","ae25","ae27","ae29","ae31","ae32"]) # drop ae20
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae21","ae22","ae23","ae25","ae27","ae29","ae31","ae32"]) # drop ae20
+
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae22","ae23","ae27","ae29","ae31","ae32"]) # drop 21 & 25
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae16","ae17","ae19","ae22","ae27","ae29","ae31","ae32"]) # drop 23
+    # write_mean_cluster('CA_N27_ML_region5_LSuperOrbital_lowres',["ae17","ae19","ae22","ae27","ae29","ae31","ae32"]) # drop 16
+
+    write_mean_cluster('CA_N27_ML_region6_RSuperOrbitalGyrus_lowres',["ae16","ae17","ae19","ae20","ae21","ae22","ae23","ae25","ae27","ae29","ae31","ae32"]) # drop ae20
+    write_mean_cluster('CA_N27_ML_region6_RSuperOrbitalGyrus_lowres',["ae16","ae17","ae19","ae21","ae22","ae23","ae25","ae27","ae29","ae31","ae32"]) # drop ae20
+
+
+
+def write_overlap_between_clusters_and_edge_of_brainsignal():
+
+    clusters = [ \
+                'CA_N27_ML_region5_LSuperOrbital',
+                'CA_N27_ML_region6_RSuperOrbitalGyrus',
+                'CA_N27_ML_region9_LMiddleOrbGyrus',
+                'CA_N27_ML_region10_RMiddleOrbGyrus',
+                'CA_N27_ML_region21_LOlfactoryCortex',
+                'CA_N27_ML_region22_ROlfactoryCortex',
+                'CA_N27_ML_region25_LMidOrbitalGyrus',
+                'CA_N27_ML_region26_RMidOrbitalGyrus',
+                'CA_N27_ML_region27_LRectalGyrus',
+                'CA_N27_ML_region28_RRectalGyrus',
+                'CA_N27_ML_region31_LAnteriorCingulate',
+                'CA_N27_ML_region32_RAnteriorCingulate',
+                ]
+
+    def subj_mask_file(subj): return root_folder + subj + '/mask_at+tlrc '
+    def cluster_file(cluster): return group_folder + cluster + '_lowres+tlrc.'
+    def subject_overlap_file(subj,cluster): return root_folder + subj + '/overlap_brain_' + cluster + '.txt'
+    def group_overlap_file(): return group_folder + 'overlap_summary.txt'
+
+    subprocess.call('rm -f ' + group_overlap_file(), shell=True)   
+
+    for subj in subjs:                                         # write each overlap file to one common file for later reorganization
+        for cluster in clusters:
+            afni('3dABoverlap','','', subj_mask_file(subj) + cluster_file(cluster) + ' > ' + subject_overlap_file(subj,cluster))
+            subprocess.call('cat ' + subject_overlap_file(subj,cluster) + '>> ' + group_overlap_file(), shell=True)
+
+
+def parse_overlap_file():
+    # defines inherited from above, which can be removed when this code gets combined with the write_overlap_between_clusters_and_edge_of_brainsignal function
+    def group_overlap_file(): return group_folder + 'overlap_summary.txt'
+
+
+    # actual code
+    def group_overlap_file_csv(): return group_folder + 'overlap_summary.csv'
+
+    with open(group_overlap_file()) as raw_overlap_data:
+        header_row = ['subj_num']+['ROI_num']+['ROI_name']+['Voxels_in_mask']+['Voxels_in_ROI']+['Voxles_ROI_or_mask']+['Voxels_ROI_&_mask']+['Mask_voxels_not_in_ROI']+['ROI_voxels_not_in_mask']+\
+                        ['Mask_percent_not_in_ROI']+['ROI_percent_not_in_mask']+['Radius_X']+['Radius_Y']+['Radius_Z']
+        excel_file = open(group_overlap_file_csv(),'w')
+        excel_csv = csv.writer(excel_file, delimiter=',') 
+        excel_csv.writerow(header_row)   
+
+        while True:
+            line1 = raw_overlap_data.readline()
+            line2 = raw_overlap_data.readline()
+            line3 = raw_overlap_data.readline()
+            if not line1: break
+
+            subj_num = re.search('/ae(\d+)/',line1).group(1)
+            region_num = re.search('_region(\d+)_',line1).group(1)
+            cluster_name = re.search('_region\d+_([a-zA-Z]+)_lowres',line1).group(1)
+            clust_stats = re.search('^(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+).(\d+)\s+(\d+).(\d+)\s+(\d+).(\d+)\s+(\d+).(\d+)\s+(\d+).(\d+)\s+',line3)
+
+            excel_csv.writerow([subj_num]+[region_num]+[cluster_name]+[clust_stats.group(1)]+[clust_stats.group(2)]+[clust_stats.group(3)]+[clust_stats.group(4)]+[clust_stats.group(5)]+[clust_stats.group(6)]+\
+                                [clust_stats.group(7)+'.'+clust_stats.group(8)]+[clust_stats.group(9)+'.'+clust_stats.group(10)]+[clust_stats.group(11)+'.'+clust_stats.group(12)]+[clust_stats.group(13)+'.'+clust_stats.group(14)]+\
+                                [clust_stats.group(15)+'.'+clust_stats.group(16)])
+                            
+
+
 
 
 
@@ -805,6 +889,8 @@ def main():
         if False: write_weak_valence_clusters_for_trendlevel_analysis()
         if False: write_ultraweak_valence_clusters_for_trendlevel_analysis()
         if True: write_results_for_atlas_CA_27_ML()
+        if False: write_overlap_between_clusters_and_edge_of_brainsignal()
+        if False: parse_overlap_file()        
 
     # Block effect
         if False: write_3BackBlock_regions()
